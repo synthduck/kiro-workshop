@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  chatbot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # AWS Configuration (set these in your environment or .env file)
+      - AWS_BEARER_TOKEN_BEDROCK=${AWS_BEARER_TOKEN_BEDROCK}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      
+      # Service Configuration
+      - BACKEND_API_URL=${BACKEND_API_URL:-http://host.docker.internal:5000}
+      - CHATBOT_PORT=8000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
+      # Model Configuration
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-us.amazon.nova-pro-v1:0}
+    
+    # Add extra hosts to allow connection to host services
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
